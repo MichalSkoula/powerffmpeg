@@ -15,6 +15,15 @@ PowerShell skript pro spojení všech videí ze zadané složky do jednoho MP4 s
 - PowerShell 7+
 - `ffmpeg` a `ffprobe` dostupné v `PATH`
 
+## Podporované vstupní formáty
+
+- `.mp4`
+- `.mov`
+- `.m4v`
+- `.avi`
+- `.mkv`
+- `.webm`
+
 ## Použití
 
 ```powershell

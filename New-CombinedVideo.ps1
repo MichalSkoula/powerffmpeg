@@ -21,6 +21,17 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $audioSampleRate = 48000
+$audioChannelLayout = 'stereo'
+$titleDurationSeconds = 3
+$titleBoxX = 'iw*0.15'
+$titleBoxY = 'ih*0.18'
+$titleBoxWidth = 'iw*0.70'
+$titleBoxHeight = 'ih*0.22'
+$titleBoxColor = 'black@0.35'
+$titleFirstLineFontSize = 'h/18'
+$titleSecondLineFontSize = 'h/24'
+$titleFirstLineY = 'h*0.24'
+$titleSecondLineY = 'h*0.34'
 $videoCodecArgs = @(
     '-c:v', 'libx264',
     '-preset', 'medium',
@@ -161,7 +172,7 @@ try {
         )
 
         if (-not $hasAudio) {
-            $ffmpegArgs += @('-f', 'lavfi', '-i', "anullsrc=channel_layout=stereo:sample_rate=$audioSampleRate")
+            $ffmpegArgs += @('-f', 'lavfi', '-i', "anullsrc=channel_layout=$audioChannelLayout:sample_rate=$audioSampleRate")
         }
 
         $ffmpegArgs += @(
@@ -201,9 +212,9 @@ try {
     $safeFirstLine = Escape-FFmpegText -Text $FirstLine
     $safeSecondLine = Escape-FFmpegText -Text $SecondLine
     $titleFilter = @(
-        "drawbox=x=iw*0.15:y=ih*0.18:w=iw*0.70:h=ih*0.22:color=black@0.35:t=fill:enable='lt(t,3)'",
-        "drawtext=text='$safeFirstLine':fontcolor=white:fontsize=h/18:x=(w-text_w)/2:y=h*0.24:enable='lt(t,3)'",
-        "drawtext=text='$safeSecondLine':fontcolor=white:fontsize=h/24:x=(w-text_w)/2:y=h*0.34:enable='lt(t,3)'"
+        "drawbox=x=$titleBoxX:y=$titleBoxY:w=$titleBoxWidth:h=$titleBoxHeight:color=$titleBoxColor:t=fill:enable='lt(t,$titleDurationSeconds)'",
+        "drawtext=text='$safeFirstLine':fontcolor=white:fontsize=$titleFirstLineFontSize:x=(w-text_w)/2:y=$titleFirstLineY:enable='lt(t,$titleDurationSeconds)'",
+        "drawtext=text='$safeSecondLine':fontcolor=white:fontsize=$titleSecondLineFontSize:x=(w-text_w)/2:y=$titleSecondLineY:enable='lt(t,$titleDurationSeconds)'"
     ) -join ','
 
     & ffmpeg -y -i $mergedPath -vf $titleFilter @videoCodecArgs -c:a copy $outputPath
