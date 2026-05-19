@@ -22,6 +22,7 @@ $ErrorActionPreference = 'Stop'
 
 $audioSampleRate = 48000
 $audioChannelLayout = 'stereo'
+$silentAudioSource = "anullsrc=channel_layout=$audioChannelLayout:sample_rate=$audioSampleRate"
 $titleDurationSeconds = 3
 $titleBoxX = 'iw*0.15'
 $titleBoxY = 'ih*0.18'
@@ -61,8 +62,8 @@ function Escape-FFmpegText {
         -replace ':', '\:' `
         -replace ',', '\,' `
         -replace ';', '\;' `
-        -replace '\[', '\[' `
-        -replace '\]', '\]' `
+        -replace '\[', '\\[' `
+        -replace '\]', '\\]' `
         -replace '%', '\%'
 }
 
@@ -172,7 +173,7 @@ try {
         )
 
         if (-not $hasAudio) {
-            $ffmpegArgs += @('-f', 'lavfi', '-i', "anullsrc=channel_layout=$audioChannelLayout:sample_rate=$audioSampleRate")
+            $ffmpegArgs += @('-f', 'lavfi', '-i', $silentAudioSource)
         }
 
         $ffmpegArgs += @(
