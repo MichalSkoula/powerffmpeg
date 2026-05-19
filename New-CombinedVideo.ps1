@@ -89,9 +89,9 @@ if (-not (Test-CommandExists -Name 'ffprobe')) {
 $resolvedInputFolder = (Resolve-Path -Path $InputFolder).Path
 
 $supportedExtensions = @('*.mp4', '*.mov', '*.m4v', '*.avi', '*.mkv', '*.webm')
-$videoFiles = foreach ($pattern in $supportedExtensions) {
+$videoFiles = @(foreach ($pattern in $supportedExtensions) {
     Get-ChildItem -Path $resolvedInputFolder -Filter $pattern -File
-}
+})
 
 $videoFiles = $videoFiles |
     Sort-Object -Property Name -Unique
@@ -126,13 +126,14 @@ try {
         $file = $videoFiles[$index]
         $normalizedPath = Join-Path -Path $normalizedFolder -ChildPath ('{0:D4}.mp4' -f $index)
         $videoFilter = "scale=$targetWidth`:$targetHeight`:`force_original_aspect_ratio=decrease,pad=$targetWidth`:$targetHeight`:(ow-iw)/2`:(oh-ih)/2`:`color=black,fps=$targetFrameRate,format=yuv420p,setsar=1"
+        $hasAudio = Test-HasAudioStream -Path $file.FullName
 
         $ffmpegArgs = @(
             '-y',
             '-i', $file.FullName
         )
 
-        if (-not (Test-HasAudioStream -Path $file.FullName)) {
+        if (-not $hasAudio) {
             $ffmpegArgs += @('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000')
         }
 
@@ -140,7 +141,7 @@ try {
             '-vf', $videoFilter
         )
 
-        if (Test-HasAudioStream -Path $file.FullName) {
+        if ($hasAudio) {
             $ffmpegArgs += @('-af', 'aresample=48000')
         }
         else {
