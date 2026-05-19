@@ -125,7 +125,13 @@ try {
     for ($index = 0; $index -lt $videoFiles.Count; $index++) {
         $file = $videoFiles[$index]
         $normalizedPath = Join-Path -Path $normalizedFolder -ChildPath ('{0:D4}.mp4' -f $index)
-        $videoFilter = "scale=$targetWidth`:$targetHeight`:`force_original_aspect_ratio=decrease,pad=$targetWidth`:$targetHeight`:(ow-iw)/2`:(oh-ih)/2`:`color=black,fps=$targetFrameRate,format=yuv420p,setsar=1"
+        $videoFilter = @(
+            "scale=$targetWidth`:$targetHeight`:`force_original_aspect_ratio=decrease"
+            "pad=$targetWidth`:$targetHeight`:(ow-iw)/2`:(oh-ih)/2`:`color=black"
+            "fps=$targetFrameRate"
+            'format=yuv420p'
+            'setsar=1'
+        ) -join ','
         $hasAudio = Test-HasAudioStream -Path $file.FullName
 
         $ffmpegArgs = @(
@@ -165,7 +171,7 @@ try {
     }
 
     $concatLines = for ($index = 0; $index -lt $videoFiles.Count; $index++) {
-        "file '$($normalizedFolder.Replace('\', '/'))/{0:D4}.mp4'" -f $index
+        "file '$($normalizedFolder -replace '\\', '/')/{0:D4}.mp4'" -f $index
     }
     Set-Content -Path $concatListPath -Value $concatLines -Encoding UTF8
 

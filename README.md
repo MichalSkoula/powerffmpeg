@@ -18,7 +18,7 @@ PowerShell skript pro spojení všech videí ze zadané složky do jednoho MP4 s
 ## Použití
 
 ```powershell
-pwsh /home/runner/work/powerffmpeg/powerffmpeg/New-CombinedVideo.ps1 `
+pwsh ./New-CombinedVideo.ps1 `
   -InputFolder "C:\Videa" `
   -OutputName "finalni-video" `
   -FirstLine "První řádek" `
