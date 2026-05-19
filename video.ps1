@@ -67,6 +67,61 @@ function Escape-FFmpegFilterValue {
         -replace ',', '\,'
 }
 
+function Convert-FrameRateToDouble {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
+        [string]$FrameRate
+    )
+
+    $value = $FrameRate.Trim()
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        return $null
+    }
+
+    if ($value -match '^\d+(\.\d+)?$') {
+        return [double]$value
+    }
+
+    if ($value -match '^(\d+(?:\.\d+)?)/(\d+(?:\.\d+)?)$') {
+        $numerator = [double]$Matches[1]
+        $denominator = [double]$Matches[2]
+        if ($denominator -eq 0) {
+            return $null
+        }
+
+        return $numerator / $denominator
+    }
+
+    return $null
+}
+
+function Get-SafeFrameRate {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
+        [string]$Primary,
+
+        [Parameter(Mandatory = $false)]
+        [AllowEmptyString()]
+        [string]$Fallback = '60/1',
+
+        [Parameter(Mandatory = $false)]
+        [double]$MaxFps = 120.0,
+
+        [Parameter(Mandatory = $false)]
+        [double]$MinFps = 1.0
+    )
+
+    $clean = $Primary.Trim().TrimEnd(',')
+    $fpsValue = Convert-FrameRateToDouble -FrameRate $clean
+    if ($null -eq $fpsValue -or $fpsValue -lt $MinFps -or $fpsValue -gt $MaxFps) {
+        return $Fallback
+    }
+
+    return $clean
+}
+
 function Get-VideoInfo {
     param(
         [Parameter(Mandatory = $true)]
@@ -75,10 +130,23 @@ function Get-VideoInfo {
 
     $width = & ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 -- $Path
     $height = & ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 -- $Path
-    $frameRate = & ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 -- $Path
+    $avgFrameRateRaw = & ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of csv=p=0 -- $Path
+    $realFrameRateRaw = & ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 -- $Path
+
+    $avgFrameRate = Get-SafeFrameRate -Primary $avgFrameRateRaw -Fallback ''
+    $frameRate = if ([string]::IsNullOrWhiteSpace($avgFrameRate)) {
+        Get-SafeFrameRate -Primary $realFrameRateRaw
+    }
+    else {
+        $avgFrameRate
+    }
 
     if ([string]::IsNullOrWhiteSpace($width) -or [string]::IsNullOrWhiteSpace($height) -or [string]::IsNullOrWhiteSpace($frameRate)) {
         throw "Failed to read video parameters: $Path"
+    }
+
+    if ($frameRate -notmatch '^\d+(\.\d+)?(/\d+(\.\d+)?)?$') {
+        throw "Invalid frame rate value '$frameRate' for file: $Path"
     }
 
     return [pscustomobject]@{
@@ -163,28 +231,27 @@ function Invoke-FFmpegChecked {
         [string]$StepName
     )
 
-    $formattedArgs = ($Arguments | ForEach-Object { Format-CommandArgument -Argument ([string]$_) }) -join ' '
+    $runtimeArgs = @('-hide_banner', '-loglevel', 'warning', '-stats_period', '5', '-stats') + $Arguments
+    $formattedArgs = ($runtimeArgs | ForEach-Object { Format-CommandArgument -Argument ([string]$_) }) -join ' '
     $script:ffmpegLogBuffer.Add('')
     $script:ffmpegLogBuffer.Add("[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] $StepName")
     $script:ffmpegLogBuffer.Add("ffmpeg $formattedArgs")
     $script:ffmpegLogBuffer.Add(('-' * 80))
 
     Write-Host "-> $StepName"
-    $ffmpegOutputLines = @(& ffmpeg @Arguments 2>&1)
-    $exitCode = $LASTEXITCODE
-    if ($ffmpegOutputLines.Count -gt 0) {
-        foreach ($line in $ffmpegOutputLines) {
-            $script:ffmpegLogBuffer.Add([string]$line)
-        }
+    $ffmpegOutputLines = [System.Collections.Generic.List[string]]::new()
+    & ffmpeg @runtimeArgs 2>&1 | ForEach-Object {
+        $line = [string]$_
+        $ffmpegOutputLines.Add($line)
+        $script:ffmpegLogBuffer.Add($line)
+        Write-Host $line
     }
+    $exitCode = $LASTEXITCODE
 
     $script:ffmpegLogBuffer.Add("ExitCode: $exitCode")
     $script:ffmpegLogBuffer.Add(('=' * 80))
 
     if ($exitCode -ne 0) {
-        if ($ffmpegOutputLines.Count -gt 0) {
-            Write-Host ($ffmpegOutputLines -join [Environment]::NewLine)
-        }
         throw "$StepName failed."
     }
 
