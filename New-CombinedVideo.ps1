@@ -20,6 +20,14 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+$audioSampleRate = 48000
+$videoCodecArgs = @(
+    '-c:v', 'libx264',
+    '-preset', 'medium',
+    '-crf', '20',
+    '-movflags', '+faststart'
+)
+
 function Test-CommandExists {
     param(
         [Parameter(Mandatory = $true)]
@@ -140,7 +148,7 @@ try {
         )
 
         if (-not $hasAudio) {
-            $ffmpegArgs += @('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000')
+            $ffmpegArgs += @('-f', 'lavfi', '-i', "anullsrc=channel_layout=stereo:sample_rate=$audioSampleRate")
         }
 
         $ffmpegArgs += @(
@@ -148,19 +156,16 @@ try {
         )
 
         if ($hasAudio) {
-            $ffmpegArgs += @('-af', 'aresample=48000')
+            $ffmpegArgs += @('-af', "aresample=$audioSampleRate")
         }
         else {
-            $ffmpegArgs += @('-shortest', '-af', 'aresample=48000')
+            $ffmpegArgs += @('-shortest', '-af', "aresample=$audioSampleRate")
         }
 
+        $ffmpegArgs += $videoCodecArgs
         $ffmpegArgs += @(
-            '-c:v', 'libx264',
-            '-preset', 'medium',
-            '-crf', '20',
             '-c:a', 'aac',
             '-b:a', '192k',
-            '-movflags', '+faststart',
             $normalizedPath
         )
 
@@ -188,7 +193,7 @@ try {
         "drawtext=text='$safeSecondLine':fontcolor=white:fontsize=h/24:x=(w-text_w)/2:y=h*0.34:enable='lt(t,3)'"
     ) -join ','
 
-    & ffmpeg -y -i $mergedPath -vf $titleFilter -c:v libx264 -preset medium -crf 20 -c:a copy -movflags +faststart $outputPath
+    & ffmpeg -y -i $mergedPath -vf $titleFilter @videoCodecArgs -c:a copy $outputPath
     if ($LASTEXITCODE -ne 0) {
         throw 'Vytvoření výsledného MP4 videa selhalo.'
     }
