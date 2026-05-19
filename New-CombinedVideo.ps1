@@ -114,7 +114,7 @@ $targetWidth = $referenceVideo.Width
 $targetHeight = $referenceVideo.Height
 $targetFrameRate = $referenceVideo.FrameRate
 
-$tempRoot = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath ("powerffmpeg_" + [guid]::NewGuid().ToString('N'))
+$tempRoot = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath "powerffmpeg_$([guid]::NewGuid().ToString('N'))"
 $normalizedFolder = Join-Path -Path $tempRoot -ChildPath 'normalized'
 $concatListPath = Join-Path -Path $tempRoot -ChildPath 'concat.txt'
 $mergedPath = Join-Path -Path $tempRoot -ChildPath 'merged.mp4'
