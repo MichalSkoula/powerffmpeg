@@ -108,11 +108,11 @@ function Convert-ToFFmpegPath {
 }
 
 if (-not (Test-CommandExists -Name 'ffmpeg')) {
-    throw 'Příkaz ffmpeg nebyl nalezen v PATH.'
+    throw 'ffmpeg nebyl nalezen v PATH.'
 }
 
 if (-not (Test-CommandExists -Name 'ffprobe')) {
-    throw 'Příkaz ffprobe nebyl nalezen v PATH.'
+    throw 'ffprobe nebyl nalezen v PATH.'
 }
 
 $resolvedInputFolder = (Resolve-Path -Path $InputFolder).Path
@@ -196,7 +196,7 @@ try {
 
         & ffmpeg @ffmpegArgs
         if ($LASTEXITCODE -ne 0) {
-            throw "Normalizace videa selhala: $($file.FullName)"
+            throw "Normalizace videa selhala: $($file.FullName). Zkontrolujte výstup ffmpeg výše."
         }
     }
 
@@ -207,7 +207,7 @@ try {
 
     & ffmpeg -y -f concat -safe 0 -i $concatListPath -c copy $mergedPath
     if ($LASTEXITCODE -ne 0) {
-        throw 'Spojení videí selhalo.'
+        throw 'Spojení videí selhalo. Zkontrolujte výstup ffmpeg výše.'
     }
 
     $safeFirstLine = Escape-FFmpegText -Text $FirstLine
@@ -220,7 +220,7 @@ try {
 
     & ffmpeg -y -i $mergedPath -vf $titleFilter @videoCodecArgs -c:a copy $outputPath
     if ($LASTEXITCODE -ne 0) {
-        throw 'Vytvoření výsledného MP4 videa selhalo.'
+        throw 'Vytvoření výsledného MP4 videa s titulkem selhalo. Zkontrolujte výstup ffmpeg výše.'
     }
 }
 finally {
