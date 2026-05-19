@@ -2,6 +2,8 @@
 
 A PowerShell script that combines all the videos in a specified folder into a single MP4 file. I use it to make monthly videos of my children.
 
+<img width="500" height="375" alt="EXbjFt5XQAMHf8C" src="https://github.com/user-attachments/assets/83fa68ab-8234-4ef3-a1a3-300cb6914e24" />
+
 ## What the script does
 
 - loads all videos from the specified folder
