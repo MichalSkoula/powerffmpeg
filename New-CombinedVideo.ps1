@@ -159,8 +159,8 @@ try {
         $file = $videoFiles[$index]
         $normalizedPath = Join-Path -Path $normalizedFolder -ChildPath ('{0:D4}.mp4' -f $index)
         $videoFilter = @(
-            "scale=$targetWidth`:$targetHeight`:`force_original_aspect_ratio=decrease"
-            "pad=$targetWidth`:$targetHeight`:(ow-iw)/2`:(oh-ih)/2`:`color=black"
+            ('scale={0}:{1}:force_original_aspect_ratio=decrease' -f $targetWidth, $targetHeight)
+            ('pad={0}:{1}:(ow-iw)/2:(oh-ih)/2:color=black' -f $targetWidth, $targetHeight)
             "fps=$targetFrameRate"
             'format=yuv420p'
             'setsar=1'
