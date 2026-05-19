@@ -86,6 +86,15 @@ function Test-HasAudioStream {
     return -not [string]::IsNullOrWhiteSpace($audioStream)
 }
 
+function Convert-ToFFmpegPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    return ([IO.Path]::GetFullPath($Path)) -replace '\\', '/'
+}
+
 if (-not (Test-CommandExists -Name 'ffmpeg')) {
     throw 'Příkaz ffmpeg nebyl nalezen v PATH.'
 }
@@ -108,11 +117,15 @@ if ($videoFiles.Count -eq 0) {
     throw "Ve složce '$resolvedInputFolder' nebyla nalezena žádná podporovaná videa."
 }
 
-$outputFileName = if ([IO.Path]::GetExtension($OutputName)) {
+$outputExtension = [IO.Path]::GetExtension($OutputName)
+$outputFileName = if ([string]::Equals($outputExtension, '.mp4', [StringComparison]::OrdinalIgnoreCase)) {
     $OutputName
 }
-else {
+elseif ([string]::IsNullOrWhiteSpace($outputExtension)) {
     "$OutputName.mp4"
+}
+else {
+    throw 'Výstupní soubor musí být ve formátu .mp4 nebo bez přípony.'
 }
 
 $outputPath = Join-Path -Path $resolvedInputFolder -ChildPath $outputFileName
@@ -122,10 +135,10 @@ $targetWidth = $referenceVideo.Width
 $targetHeight = $referenceVideo.Height
 $targetFrameRate = $referenceVideo.FrameRate
 
-$tempRoot = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath "powerffmpeg_$([guid]::NewGuid().ToString('N'))"
-$normalizedFolder = Join-Path -Path $tempRoot -ChildPath 'normalized'
-$concatListPath = Join-Path -Path $tempRoot -ChildPath 'concat.txt'
-$mergedPath = Join-Path -Path $tempRoot -ChildPath 'merged.mp4'
+$tempProcessingRoot = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath "powerffmpeg_$([guid]::NewGuid().ToString('N'))"
+$normalizedFolder = Join-Path -Path $tempProcessingRoot -ChildPath 'normalized'
+$concatListPath = Join-Path -Path $tempProcessingRoot -ChildPath 'concat.txt'
+$mergedPath = Join-Path -Path $tempProcessingRoot -ChildPath 'merged.mp4'
 
 New-Item -ItemType Directory -Path $normalizedFolder -Force | Out-Null
 
@@ -176,7 +189,7 @@ try {
     }
 
     $concatLines = for ($index = 0; $index -lt $videoFiles.Count; $index++) {
-        "file '$($normalizedFolder -replace '\\', '/')/{0:D4}.mp4'" -f $index
+        "file '$((Convert-ToFFmpegPath -Path (Join-Path -Path $normalizedFolder -ChildPath ('{0:D4}.mp4' -f $index))))'"
     }
     Set-Content -Path $concatListPath -Value $concatLines -Encoding UTF8
 
@@ -199,8 +212,8 @@ try {
     }
 }
 finally {
-    if (Test-Path -Path $tempRoot) {
-        Remove-Item -Path $tempRoot -Recurse -Force
+    if (Test-Path -Path $tempProcessingRoot) {
+        Remove-Item -Path $tempProcessingRoot -Recurse -Force
     }
 }
 
