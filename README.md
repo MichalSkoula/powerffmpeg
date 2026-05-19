@@ -1,6 +1,6 @@
 # powerffmpeg
 
-A PowerShell script for combining all videos from a specified folder into a single MP4 file.
+A PowerShell script that combines all the videos in a specified folder into a single MP4 file. I use it to make monthly videos of my children.
 
 ## What the script does
 
